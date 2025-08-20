@@ -1,0 +1,125 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
+    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+@media (prefers-color-scheme: dark) {
+  html {
+    color-scheme: dark;
+  }
+}
+
+/* Animation pour le gradient de fond */
+@keyframes gradientShift {
+  0% { 
+    background-position: 0% 50%; 
+  }
+  50% { 
+    background-position: 100% 50%; 
+  }
+  100% { 
+    background-position: 0% 50%; 
+  }
+}
+
+.gradient-bg {
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 25%, #1e3c72 50%, #0f2027 75%, #203a43 100%);
+  background-size: 400% 400%;
+  animation: gradientShift 8s ease infinite;
+}
+
+/* Styles pour les composants de modération */
+.moderation-slot {
+  transition: all 0.2s ease;
+}
+
+.moderation-slot:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.moderation-slot.assigned {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.moderation-slot.partial {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.moderation-slot.empty {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+}
+
+/* Animations pour les états de sauvegarde */
+.save-indicator {
+  transition: all 0.3s ease;
+}
+
+.save-indicator.saving {
+  color: #3b82f6;
+}
+
+.save-indicator.saved {
+  color: #10b981;
+}
+
+.save-indicator.error {
+  color: #ef4444;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .planning-grid {
+    font-size: 0.75rem;
+  }
+  
+  .planning-cell {
+    min-height: 2rem;
+  }
+}
+
+/* Dark mode improvements */
+.dark {
+  --tw-bg-opacity: 1;
+  background-color: rgb(17 24 39 / var(--tw-bg-opacity));
+  color: rgb(243 244 246 / var(--tw-text-opacity));
+}
+
+.dark .card {
+  background-color: rgb(31 41 55 / var(--tw-bg-opacity));
+  border-color: rgb(75 85 99 / var(--tw-border-opacity));
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

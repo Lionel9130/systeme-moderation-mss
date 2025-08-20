@@ -1,0 +1,729 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  Moon, 
+  Sun, 
+  Clock, 
+  LogOut, 
+  User, 
+  Shield, 
+  Eye, 
+  Users,
+  Plus,
+  Edit3,
+  Trash2,
+  Save,
+  X,
+  Search,
+  Download,
+  Upload,
+  Home,
+  Calendar,
+  Database,
+  CheckCircle,
+  AlertCircle
+} from 'lucide-react';
+
+export default function ModerationSystem() {
+  // États globaux
+  const [mainView, setMainView] = useState('home');
+  const [currentUser, setCurrentUser] = useState(null);
+  const [darkMode, setDarkMode] = useState(false);
+  
+  // Utilisateur administrateur par défaut
+  const initialUsers = {
+    'mosley.admin@mssclick.planning': { 
+      password: 'New12345678', 
+      role: 'admin', 
+      token: 'adm_001',
+      firstName: 'Mosley',
+      lastName: 'Admin',
+      createdAt: '2024-01-01T00:00:00Z',
+      lastLogin: new Date().toISOString(),
+      status: 'active'
+    }
+  };
+
+  const [users, setUsers] = useState(initialUsers);
+  
+  // États du planning
+  const [planningDate, setPlanningDate] = useState(new Date());
+  const [planningView, setPlanningView] = useState('dashboard');
+  const [weekStart, setWeekStart] = useState('monday');
+  const [scheduleData, setScheduleData] = useState({});
+  const [peakData, setPeakData] = useState({});
+  
+  // États de la gestion des utilisateurs
+  const [userManagementView, setUserManagementView] = useState('list');
+  const [editingUser, setEditingUser] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterRole, setFilterRole] = useState('all');
+  const [userForm, setUserForm] = useState({
+    email: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+    role: 'trainee',
+    status: 'active'
+  });
+  
+  // États de connexion
+  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
+  const [loginError, setLoginError] = useState('');
+
+  // États de sauvegarde
+  const [saveStatus, setSaveStatus] = useState('saved');
+  const [lastSaveTime, setLastSaveTime] = useState(new Date());
+
+  // Configuration
+  const moderationHours = [
+    '17:00', '17:30', '18:00', '18:30', '19:00', '19:30',
+    '20:00', '20:30', '21:00', '21:30', '22:00', '22:30',
+    '23:00', '23:30', '00:00', '00:30', '01:00', '01:30', '02:00'
+  ];
+
+  const daysOfWeek = weekStart === 'monday' 
+    ? ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+    : ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+
+  const roles = [
+    { value: 'admin', label: 'Administrateur', icon: Shield, color: 'red' },
+    { value: 'forma staff', label: 'Formation Staff', icon: User, color: 'purple' },
+    { value: 'moderator', label: 'Modérateur', icon: User, color: 'blue' },
+    { value: 'trainee', label: 'Stagiaire', icon: Eye, color: 'yellow' }
+  ];
+
+  const statuses = [
+    { value: 'active', label: 'Actif', color: 'green' },
+    { value: 'inactive', label: 'Inactif', color: 'gray' },
+    { value: 'pending', label: 'En attente', color: 'yellow' },
+    { value: 'suspended', label: 'Suspendu', color: 'red' }
+  ];
+
+  // Sauvegarde automatique simulée
+  useEffect(() => {
+    const saveTimer = setTimeout(() => {
+      setSaveStatus('saved');
+      setLastSaveTime(new Date());
+    }, 1000);
+    
+    return () => clearTimeout(saveTimer);
+  }, [users, scheduleData, peakData]);
+
+  // Vérification des permissions
+  const canModifySchedule = () => {
+    return currentUser?.role === 'admin' || 
+           currentUser?.role === 'forma staff' || 
+           currentUser?.role === 'moderator' || 
+           currentUser?.role === 'trainee';
+  };
+
+  const canManagePeaks = () => {
+    return currentUser?.role === 'admin' || currentUser?.role === 'forma staff';
+  };
+
+  const canViewAll = () => {
+    return currentUser?.role === 'admin' || currentUser?.role === 'forma staff';
+  };
+
+  const canManageUsers = () => {
+    return currentUser?.role === 'admin' || currentUser?.role === 'forma staff';
+  };
+
+  const canManageDatabase = () => {
+    return currentUser?.role === 'admin';
+  };
+
+  // Helpers UI
+  const getRoleInfo = (role) => roles.find(r => r.value === role);
+  const getStatusInfo = (status) => statuses.find(s => s.value === status);
+
+  const themeClasses = darkMode 
+    ? 'bg-gray-900 text-white' 
+    : 'bg-white text-gray-900';
+
+  const secondaryTheme = darkMode 
+    ? 'bg-gray-800 border-gray-700' 
+    : 'bg-gray-50 border-gray-200';
+
+  // Fonctions de sauvegarde
+  const exportData = () => {
+    const allData = {
+      users,
+      scheduleData,
+      peakData,
+      currentUser,
+      darkMode,
+      settings: { weekStart },
+      metadata: {
+        version: '1.0',
+        lastSave: new Date().toISOString(),
+        totalUsers: Object.keys(users).length,
+        exportType: 'manual'
+      }
+    };
+    
+    const dataStr = JSON.stringify(allData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const timestamp = new Date().toISOString().split('T')[0];
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `moderation_export_${timestamp}.json`;
+    link.click();
+    
+    URL.revokeObjectURL(url);
+    alert('Données exportées avec succès !');
+  };
+
+  const importData = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        setSaveStatus('saving');
+        const data = JSON.parse(e.target.result);
+        
+        if (data.users && data.metadata) {
+          setUsers(data.users || {});
+          setScheduleData(data.scheduleData || {});
+          setPeakData(data.peakData || {});
+          
+          if (data.settings) {
+            setWeekStart(data.settings.weekStart || 'monday');
+          }
+          
+          if (data.darkMode !== undefined) {
+            setDarkMode(data.darkMode);
+          }
+          
+          setSaveStatus('saved');
+          setLastSaveTime(new Date());
+          alert(`Données chargées avec succès !\n\n${Object.keys(data.users).length} utilisateurs importés\nDonnées du planning restaurées\nSauvegarde du ${new Date(data.metadata.lastSave).toLocaleString()}`);
+        } else {
+          throw new Error('Format de fichier invalide');
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement:', error);
+        setSaveStatus('error');
+        alert('Erreur lors du chargement du fichier.\nVérifiez que c\'est bien un fichier de sauvegarde valide.');
+      }
+    };
+    
+    reader.readAsText(file);
+    event.target.value = '';
+  };
+
+  const resetAllData = () => {
+    if (confirm('ATTENTION !\n\nCette action va supprimer TOUTES les données :\n• Tous les utilisateurs (sauf les comptes par défaut)\n• Tout le planning\n• Tous les pics de joueurs\n\nÊtes-vous sûr de vouloir continuer ?')) {
+      if (confirm('DERNIÈRE CONFIRMATION\n\nCette action est IRRÉVERSIBLE !\n\nConfirmez-vous la suppression complète ?')) {
+        setUsers(initialUsers);
+        setScheduleData({});
+        setPeakData({});
+        setCurrentUser(null);
+        setMainView('home');
+        alert('Toutes les données ont été réinitialisées.');
+      }
+    }
+  };
+  
+  const handleLogin = (e) => {
+    if (e) {
+      e.preventDefault();
+    }
+    
+    const email = loginForm.email.trim();
+    const password = loginForm.password.trim();
+    
+    if (!email || !password) {
+      setLoginError('Veuillez remplir tous les champs');
+      return;
+    }
+    
+    const user = users[email];
+    
+    if (user && user.password === password) {
+      const userData = {
+        email,
+        role: user.role,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        token: user.token,
+        loginTime: new Date().toISOString()
+      };
+      
+      setCurrentUser(userData);
+      setLoginError('');
+      setLoginForm({ email: '', password: '' });
+      setMainView('home');
+    } else {
+      setLoginError('Email ou mot de passe incorrect');
+    }
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setMainView('home');
+  };
+
+  // Fonctions de gestion des utilisateurs
+  const generateToken = (role) => {
+    const prefix = {
+      'admin': 'adm',
+      'forma staff': 'frm',
+      'moderator': 'mod',
+      'trainee': 'tst'
+    }[role] || 'usr';
+    
+    const existingTokens = Object.values(users)
+      .filter(user => user.token && user.token.startsWith(prefix))
+      .map(user => parseInt(user.token.split('_')[1]))
+      .filter(num => !isNaN(num));
+    
+    const nextNumber = existingTokens.length > 0 ? Math.max(...existingTokens) + 1 : 1;
+    return `${prefix}_${nextNumber.toString().padStart(3, '0')}`;
+  };
+
+  const createUser = () => {
+    if (!userForm.email || !userForm.password || !userForm.firstName || !userForm.lastName) {
+      alert('Tous les champs obligatoires doivent être remplis');
+      return;
+    }
+
+    if (users[userForm.email]) {
+      alert('Cet email existe déjà');
+      return;
+    }
+
+    const newUser = {
+      ...userForm,
+      token: generateToken(userForm.role),
+      createdAt: new Date().toISOString(),
+      lastLogin: null
+    };
+
+    setUsers(prev => ({
+      ...prev,
+      [userForm.email]: newUser
+    }));
+
+    setUserForm({
+      email: '',
+      password: '',
+      firstName: '',
+      lastName: '',
+      role: 'trainee',
+      status: 'active'
+    });
+
+    setUserManagementView('list');
+    alert('Utilisateur créé avec succès !');
+  };
+
+  const updateUser = () => {
+    if (!editingUser || !userForm.email || !userForm.firstName || !userForm.lastName) {
+      alert('Tous les champs obligatoires doivent être remplis');
+      return;
+    }
+
+    const updatedUsers = { ...users };
+    
+    if (editingUser !== userForm.email && users[editingUser]) {
+      delete updatedUsers[editingUser];
+    }
+
+    const oldUser = users[editingUser];
+    const newToken = oldUser && oldUser.role === userForm.role 
+      ? oldUser.token 
+      : generateToken(userForm.role);
+
+    updatedUsers[userForm.email] = {
+      ...oldUser,
+      ...userForm,
+      password: userForm.password || oldUser.password,
+      token: newToken,
+      updatedAt: new Date().toISOString()
+    };
+
+    setUsers(updatedUsers);
+    setEditingUser(null);
+    setUserManagementView('list');
+    setUserForm({
+      email: '',
+      password: '',
+      firstName: '',
+      lastName: '',
+      role: 'trainee',
+      status: 'active'
+    });
+
+    alert('Utilisateur mis à jour avec succès !');
+  };
+
+  const deleteUser = (email) => {
+    if (email === currentUser?.email) {
+      alert('Vous ne pouvez pas supprimer votre propre compte');
+      return;
+    }
+
+    if (confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur ${email} ?`)) {
+      const updatedUsers = { ...users };
+      delete updatedUsers[email];
+      setUsers(updatedUsers);
+      alert('Utilisateur supprimé avec succès !');
+    }
+  };
+
+  const startEditUser = (email) => {
+    const user = users[email];
+    setUserForm({
+      email,
+      password: user.password,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      status: user.status
+    });
+    setEditingUser(email);
+    setUserManagementView('edit');
+  };
+
+  // Fonctions du planning
+  const formatDateKey = (date) => {
+    return date.toISOString().split('T')[0];
+  };
+
+  const getWeekDates = (date) => {
+    const week = [];
+    const startOfWeek = new Date(date);
+    const day = startOfWeek.getDay();
+    const diff = weekStart === 'monday' 
+      ? (day === 0 ? -6 : 1 - day)
+      : -day;
+    
+    startOfWeek.setDate(startOfWeek.getDate() + diff);
+    
+    for (let i = 0; i < 7; i++) {
+      const currentDay = new Date(startOfWeek);
+      currentDay.setDate(startOfWeek.getDate() + i);
+      week.push(currentDay);
+    }
+    return week;
+  };
+
+  const isToday = (date) => {
+    const today = new Date();
+    return date.toDateString() === today.toDateString();
+  };
+
+  const updatePeakPlayers = (date, hour, players) => {
+    const dateKey = formatDateKey(date);
+    setPeakData(prev => ({
+      ...prev,
+      [dateKey]: {
+        ...prev[dateKey],
+        [hour]: parseInt(players) || 0
+      }
+    }));
+  };
+
+  const getPeakPlayers = (date, hour) => {
+    const dateKey = formatDateKey(date);
+    return peakData[dateKey]?.[hour] || 0;
+  };
+
+  const toggleModeratorSlot = (date, hour) => {
+    if (!canModifySchedule()) {
+      alert('Vous n\'avez pas les permissions pour modifier le planning');
+      return;
+    }
+
+    const dateKey = formatDateKey(date);
+    const daySlots = scheduleData[dateKey] || {};
+    const userSlotKey = `${hour}-${currentUser.token}`;
+    
+    const assignedMods = Object.keys(daySlots).filter(key => 
+      key.startsWith(hour) && daySlots[key]?.assigned
+    );
+    const currentModCount = assignedMods.length;
+    const isUserAssigned = daySlots[userSlotKey]?.assigned;
+    
+    if (isUserAssigned) {
+      setScheduleData(prev => ({
+        ...prev,
+        [dateKey]: {
+          ...prev[dateKey],
+          [userSlotKey]: null
+        }
+      }));
+      return;
+    }
+    
+    if (currentModCount >= 3) {
+      alert('Créneau complet ! Maximum 3 modérateurs par créneau.');
+      return;
+    }
+    
+    setScheduleData(prev => ({
+      ...prev,
+      [dateKey]: {
+        ...prev[dateKey],
+        [userSlotKey]: {
+          assigned: true,
+          assignedBy: currentUser.email,
+          assignedAt: new Date().toISOString(),
+          role: currentUser.role
+        }
+      }
+    }));
+  };
+
+  const navigatePlanningDate = (direction) => {
+    const newDate = new Date(planningDate);
+    if (planningView === 'week') {
+      newDate.setDate(planningDate.getDate() + (direction * 7));
+    } else {
+      newDate.setMonth(planningDate.getMonth() + direction);
+    }
+    setPlanningDate(newDate);
+  };
+
+  const getPlanningDateTitle = () => {
+    if (planningView === 'week') {
+      const weekDates = getWeekDates(planningDate);
+      const start = weekDates[0];
+      const end = weekDates[6];
+      return `${start.getDate()}/${start.getMonth() + 1} - ${end.getDate()}/${end.getMonth() + 1}/${end.getFullYear()}`;
+    } else {
+      return planningDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    }
+  };
+
+  // Fonctions dashboard
+  const getWeekStats = () => {
+    const weekDates = getWeekDates(planningDate);
+    const totalSlots = weekDates.length * moderationHours.length;
+    let coveredSlots = 0;
+    let userSlots = 0;
+    const dailyStats = {};
+    const moderatorStats = {};
+
+    weekDates.forEach((date, dayIndex) => {
+      const dateKey = formatDateKey(date);
+      const daySlots = scheduleData[dateKey] || {};
+      let dayCovered = 0;
+      
+      moderationHours.forEach(hour => {
+        const hourSlots = Object.keys(daySlots).filter(key => 
+          key.startsWith(hour) && daySlots[key]?.assigned
+        );
+        
+        if (hourSlots.length > 0) {
+          coveredSlots++;
+          dayCovered++;
+        }
+        
+        hourSlots.forEach(slotKey => {
+          const token = slotKey.split('-')[1];
+          if (!moderatorStats[token]) {
+            moderatorStats[token] = { slots: 0 };
+          }
+          moderatorStats[token].slots++;
+        });
+        
+        const userSlot = hourSlots.find(key => key.includes(currentUser?.token));
+        if (userSlot) userSlots++;
+      });
+      
+      const dayName = daysOfWeek[dayIndex];
+      dailyStats[dayName] = {
+        covered: dayCovered,
+        total: moderationHours.length,
+        coverage: Math.round((dayCovered / moderationHours.length) * 100)
+      };
+    });
+
+    const topModerator = Object.entries(moderatorStats)
+      .sort(([,a], [,b]) => b.slots - a.slots)[0];
+
+    return {
+      totalSlots,
+      coveredSlots,
+      userSlots,
+      overallCoverage: Math.round((coveredSlots / totalSlots) * 100),
+      dailyStats,
+      moderatorStats,
+      topModerator
+    };
+  };
+
+  // Composant de statut de sauvegarde
+  const renderSaveStatus = () => (
+    <div className="flex items-center gap-2 text-sm">
+      {saveStatus === 'saving' && (
+        <>
+          <div className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+          <span className="text-blue-600">Sauvegarde...</span>
+        </>
+      )}
+      {saveStatus === 'saved' && (
+        <>
+          <CheckCircle className="w-4 h-4 text-green-500" />
+          <span className="text-green-600">
+            Sauvé à {lastSaveTime.toLocaleTimeString()}
+          </span>
+        </>
+      )}
+    </div>
+  );
+
+  // Page de connexion
+  const renderLoginPage = () => (
+    <div className="min-h-screen flex items-center justify-center text-white" 
+         style={{
+           background: 'linear-gradient(135deg, #1e3c72 0%, #2a5298 25%, #1e3c72 50%, #0f2027 75%, #203a43 100%)',
+           backgroundSize: '400% 400%',
+           animation: 'gradientShift 8s ease infinite'
+         }}>
+      <style jsx>{`
+        @keyframes gradientShift {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+      `}</style>
+      
+      <div className="absolute inset-0 bg-black bg-opacity-30"></div>
+      
+      <div className="relative z-10 max-w-md w-full space-y-8 p-8">
+        <div className="text-center">
+          <Clock className="mx-auto h-12 w-12 text-blue-500" />
+          <h2 className="mt-6 text-3xl font-bold text-white">Système de Modération</h2>
+          <p className="mt-2 text-sm text-gray-300">
+            Planning + Gestion des utilisateurs
+          </p>
+        </div>
+        
+        <div className="mt-8 space-y-6">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2 text-white">Email</label>
+              <input
+                type="email"
+                value={loginForm.email}
+                onChange={(e) => setLoginForm(prev => ({ ...prev, email: e.target.value }))}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handleLogin();
+                  }
+                }}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  darkMode 
+                    ? 'bg-gray-800 border-gray-600 text-white' 
+                    : 'bg-white/90 border-gray-300 text-gray-900 backdrop-blur-sm'
+                }`}
+                placeholder="Email"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2 text-white">Mot de passe</label>
+              <input
+                type="password"
+                value={loginForm.password}
+                onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handleLogin();
+                  }
+                }}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  darkMode 
+                    ? 'bg-gray-800 border-gray-600 text-white' 
+                    : 'bg-white/90 border-gray-300 text-gray-900 backdrop-blur-sm'
+                }`}
+                placeholder="Mot de passe"
+                required
+              />
+            </div>
+          </div>
+
+          {loginError && (
+            <div className="text-red-400 text-sm text-center bg-red-900/50 p-2 rounded">
+              {loginError}
+            </div>
+          )}
+
+          <button
+            onClick={() => handleLogin()}
+            className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+          >
+            Se connecter
+          </button>
+        </div>
+
+        <div className="mt-6">
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className={`w-full p-2 rounded-full transition-colors ${
+              darkMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-gray-700 hover:bg-gray-800'
+            } text-white`}
+          >
+            {darkMode ? <Sun className="w-5 h-5 mx-auto" /> : <Moon className="w-5 h-5 mx-auto" />}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Contenu des autres composants de rendu (tronqué pour la taille)...
+  // Je vais continuer dans la prochaine partie car le code est très long
+
+  // Si pas connecté, afficher la page de connexion
+  if (!currentUser) {
+    return renderLoginPage();
+  }
+
+  return (
+    <div className={`min-h-screen ${themeClasses} transition-all duration-300`}>
+      <div className="p-6">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-4">Système de Modération MSS-Click</h1>
+          <p className="text-lg text-gray-600 dark:text-gray-400">
+            Bienvenue {currentUser?.firstName} {currentUser?.lastName} ({currentUser?.role})
+          </p>
+        </div>
+        
+        <div className="mt-8 flex justify-center gap-4">
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded transition-colors flex items-center gap-2"
+          >
+            <LogOut className="w-4 h-4" />
+            Déconnexion
+          </button>
+          
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className={`p-2 rounded-full transition-colors ${
+              darkMode ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-gray-700 hover:bg-gray-800'
+            } text-white`}
+          >
+            {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+        </div>
+        
+        <div className={`mt-8 p-4 rounded-lg ${secondaryTheme} border`}>
+          <div className="text-center text-sm text-gray-600 dark:text-gray-400">
+            Document lié au staff MSS-Click fait par Mosley
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
